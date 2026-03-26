@@ -11,7 +11,7 @@
 
 
 
-#### *End-to-End Data Engineering | Medallion Architecture | Data Factory | Power BI*
+#### *End-to-End Data Engineering | Azure Synapse | Azure Data Factory | Medallion Architecture | Power BI*
 <br>
 
 This project demonstrates a complete **data engineering solution** on **Microsoft Fabric**, ingesting real-time earthquake event data from the **USGS Earthquake API**, processing it through **Medallion architecture (Bronze → Silver → Gold)** using **Synapse Data Engineering**, orchestrating the workflow with **Data Factory**, and visualizing global seismic activity in **Power BI**.
