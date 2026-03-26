@@ -41,24 +41,24 @@ This design follows the **Medallion architecture** pattern, ensuring scalable, m
 
 ---
 
-# 🥉 **Bronze Layer — Raw Ingestion**
+## 🥉 **Bronze Layer - Raw Ingestion**
 
 The Bronze notebook ingests raw earthquake events directly from the USGS API.
 
-### **Key Responsibilities**
+#### **Key Responsibilities**
 
 * Parameterized API ingestion
 * Raw JSON extraction (`features` array)
 * Storage into Lakehouse Files
 * Acts as the *landing zone* for incremental loads
 
-### **API Format Example**
+#### **API Format Example**
 
 ```
 https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2014-01-01&endtime=2014-01-02
 ```
 
-### **Core Logic**
+#### **Core Logic**
 
 ```python
 url = f"https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime={start_date}&endtime={end_date}"
@@ -71,25 +71,25 @@ if response.status_code == 200:
         json.dump(data, file, indent=4)
 ```
 
-### **Notes**
+#### **Notes**
 
 * During development, start/end dates were hardcoded for testing 7-day loads.
 * In production, **Data Factory** passes these parameters dynamically.
 
 ---
 
-# 🥈 **Silver Layer — Standardized & Flattened Data**
+## 🥈 **Silver Layer - Standardized & Flattened Data**
 
 The Silver notebook shapes the raw JSON into a structured table.
 
-### **Key Responsibilities**
+#### **Key Responsibilities**
 
 * Flatten nested geometry and property fields
 * Extract latitude/longitude/elevation
 * Convert Unix milliseconds → timestamps
 * Persist cleaned dataset to a Silver Delta table
 
-### **Core Logic**
+#### **Core Logic**
 
 ```python
 df = df.select(
@@ -110,24 +110,24 @@ df = df.select(
 df.write.mode('append').saveAsTable('earthquake_events_silver')
 ```
 
-### **Notes**
+#### **Notes**
 
 * Parameterized `start_date` supports incremental processing.
 * Silver provides a **clean, analytics-ready schema**.
 
 ---
 
-# 🥇 **Gold Layer — Business-Ready Enrichment**
+## 🥇 **Gold Layer - Business-Ready Enrichment**
 
 The Gold notebook enriches Silver data with **reverse geocoding** and **classification logic**.
 
-### **Key Responsibilities**
+#### **Key Responsibilities**
 
 * Lookup country codes from latitude/longitude
 * Add `sig_class` categories: Low / Moderate / High
 * Append enriched rows to Gold Delta table
 
-### **Core Logic**
+#### **Core Logic**
 
 ```python
 def get_country_code(lat, lon):
@@ -147,18 +147,18 @@ df_final = df_with_location.withColumn("sig_class", when(col("sig") < 100, "Low"
 df_final.write.mode('append').saveAsTable('earthquake_events_gold')
 ```
 
-### **Notes**
+#### **Notes**
 
 * Gold is the **semantic layer**, providing business-friendly fields.
 * The table powers the Power BI model.
 
 ---
 
-# 📊 **Power BI — Earthquake Monitoring Dashboard**
+## 📊 **Power BI - Earthquake Monitoring Dashboard**
 
 A dedicated **Fabric Semantic Model** is built on top of the Gold table.
 
-### **Visuals**
+#### **Visuals**
 
 **Map View**
 
@@ -172,7 +172,7 @@ A dedicated **Fabric Semantic Model** is built on top of the Gold table.
 1. Date range
 2. Significance class (Low / Moderate / High)
 
-### **Dashboard**
+#### **Dashboard**
 
 ![Dashboard](https://github.com/ManasiBhosale/Earthquakes-ETL-Pipeline/blob/6e315bb927348c934bf11bccba984dbe208d8a1d/images/Worldwide%20Earthquake%20Events.jpg)
 
@@ -180,7 +180,7 @@ The dashboard auto-refreshes daily as the pipeline loads new data, providing a l
 
 ---
 
-# 🔄 **Data Factory Pipeline — Orchestration**
+## 🔄 **Data Factory Pipeline - Orchestration**
 
 The Fabric Data Factory pipeline automates the **Bronze → Silver → Gold** workflow by executing each notebook in sequence and passing dynamic parameters at runtime.
 
@@ -192,7 +192,7 @@ Silver Notebook
 Gold Notebook
 ```
 
-## 🧩 Why Parameter Passing?
+#### 🧩 Why Parameter Passing?
 
 The USGS API requires **starttime** and **endtime** for every request.
 Since the pipeline runs daily, these values must be generated **dynamically**, not hardcoded.
@@ -211,7 +211,7 @@ This ensures:
 * Gold enriches and appends only new rows
 * Power BI visuals stay updated with daily incremental data
 
-## 📅 Example
+#### 📅 Example
 
 Manual seed load on **25/03**:
 
@@ -221,13 +221,13 @@ start=2026-03-18, end=2026-03-24
 
 Pipeline run on **26/03** automatically loads **25/03** data without reprocessing old data.
 
-## 📸 Pipeline Diagram
+#### 📸 Pipeline Diagram
 
 ![Pipeline](https://github.com/ManasiBhosale/Earthquakes-ETL-Pipeline/blob/6e315bb927348c934bf11bccba984dbe208d8a1d/images/Pipeline%20Orchestration.png)
 
 ---
 
-# 🚀 **End-to-End Outcome**
+### 🚀 **End-to-End Outcome**
 
 This project showcases a complete Fabric-based data engineering solution:
 
@@ -240,7 +240,7 @@ This project showcases a complete Fabric-based data engineering solution:
 
 ---
 
-# 🧡 **Credits & Acknowledgements**
+### 🧡 **Credits & Acknowledgements**
 
 This project was inspired by and references the following resources:
 
