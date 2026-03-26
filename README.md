@@ -35,27 +35,7 @@ This project demonstrates a complete **data engineering solution** on **Microsof
 
 ## 🏗️ **Architecture**
 
-```text
-USGS Earthquake API
-        │   (Python requests)
-        ▼
-[ BRONZE ] → Raw Ingestion (JSON Files)
-        │
-        ▼   (PySpark Transformations)
-[ SILVER ] → Cleaned & Flattened Delta Table
-        │
-        ▼   (Reverse Geocoding + Business Logic)
-[ GOLD ] → Enriched, Business-Ready Delta Table
-        │
-        ▼
-Semantic Model
-        │
-        ▼
-Power BI Reports (Daily Auto-Refresh)
-        │
-        ▼
-Data Factory Pipeline (Orchestrating Everything)
-```
+![Architecture Diagram](https://github.com/ManasiBhosale/Earthquakes-ETL-Pipeline/blob/6e315bb927348c934bf11bccba984dbe208d8a1d/images/Project%20Architecture.jpg)
 
 This design follows the **Medallion architecture** pattern, ensuring scalable, modular data transformation layers.
 
@@ -112,8 +92,6 @@ The Silver notebook shapes the raw JSON into a structured table.
 ### **Core Logic**
 
 ```python
-df = spark.read.option("multiline", "true").json(f"Files/{start_date}_earthquake_data.json")
-
 df = df.select(
     'id',
     col('geometry.coordinates').getItem(0).alias('longitude'),
@@ -158,20 +136,13 @@ def get_country_code(lat, lon):
 
 get_country_code_udf = udf(get_country_code, StringType())
 
-df = spark.read.table("earthquake_events_silver") \
-               .filter(col('time') > start_date)
+df = spark.read.table("earthquake_events_silver").filter(col('time') > start_date)
 
-df_with_location = df.withColumn(
-    "country_code",
-    get_country_code_udf(col("latitude"), col("longitude"))
-)
+df_with_location = df.withColumn("country_code", get_country_code_udf(col("latitude"), col("longitude")))
 
-df_final = df_with_location.withColumn(
-    "sig_class",
-    when(col("sig") < 100, "Low")
+df_final = df_with_location.withColumn("sig_class", when(col("sig") < 100, "Low")
     .when((col("sig") >= 100) & (col("sig") < 500), "Moderate")
-    .otherwise("High")
-)
+    .otherwise("High"))
 
 df_final.write.mode('append').saveAsTable('earthquake_events_gold')
 ```
@@ -201,7 +172,9 @@ A dedicated **Fabric Semantic Model** is built on top of the Gold table.
 1. Date range
 2. Significance class (Low / Moderate / High)
 
-### **Outcome**
+### **Dashboard**
+
+![Dashboard](https://github.com/ManasiBhosale/Earthquakes-ETL-Pipeline/blob/6e315bb927348c934bf11bccba984dbe208d8a1d/images/Worldwide%20Earthquake%20Events.jpg)
 
 The dashboard auto-refreshes daily as the pipeline loads new data, providing a live global earthquake activity monitor.
 
@@ -209,7 +182,7 @@ The dashboard auto-refreshes daily as the pipeline loads new data, providing a l
 
 # 🔄 **Data Factory Pipeline — Orchestration**
 
-A Fabric Data Factory pipeline orchestrates the 3 notebook layers:
+The Fabric Data Factory pipeline automates the **Bronze → Silver → Gold** workflow by executing each notebook in sequence and passing dynamic parameters at runtime.
 
 ```
 Bronze Notebook
@@ -219,29 +192,38 @@ Silver Notebook
 Gold Notebook
 ```
 
-### **Dynamic Parameters**
+## 🧩 Why Parameter Passing?
+
+The USGS API requires **starttime** and **endtime** for every request.
+Since the pipeline runs daily, these values must be generated **dynamically**, not hardcoded.
+
+Data Factory calculates:
 
 ```text
 start_date = @formatDateTime(adddays(utcNow(), -1), 'yyyy-MM-dd')
 end_date   = @formatDateTime(utcNow(), 'yyyy-MM-dd')
 ```
 
-### **Pipeline Behavior**
+This ensures:
 
-* Runs daily
-* Fetches previous day’s earthquake events
-* Appends to Bronze → Silver → Gold
-* Power BI visuals automatically update
+* The Bronze notebook fetches yesterday’s earthquake events
+* Silver transforms only that day’s file
+* Gold enriches and appends only new rows
+* Power BI visuals stay updated with daily incremental data
 
-### **Example**
+## 📅 Example
 
-On **25/03**, initial load using:
+Manual seed load on **25/03**:
 
 ```
 start=2026-03-18, end=2026-03-24
 ```
 
-Pipeline run on **26/03** automatically ingests **25/03** data.
+Pipeline run on **26/03** automatically loads **25/03** data without reprocessing old data.
+
+## 📸 Pipeline Diagram
+
+![Pipeline](https://github.com/ManasiBhosale/Earthquakes-ETL-Pipeline/blob/6e315bb927348c934bf11bccba984dbe208d8a1d/images/Pipeline%20Orchestration.png)
 
 ---
 
@@ -258,13 +240,21 @@ This project showcases a complete Fabric-based data engineering solution:
 
 ---
 
-# 📌 **Future Enhancements**
+# 🧡 **Credits & Acknowledgements**
 
-* Add anomaly detection for unusual seismic patterns
-* Expand enrichment using tectonic plate boundaries
-* Create alerting using Fabric Real-Time Hub
-* Add unit tests for transformations
-* Integrate monitoring through Data Factory activity logs
+This project was inspired by and references the following resources:
+
+1. **Project Reference / Tutorial**
+   [https://youtu.be/Av44Nrhl05s?si=Z3EWhipCJgcYuevz](https://youtu.be/Av44Nrhl05s?si=Z3EWhipCJgcYuevz)
+
+2. **USGS Earthquake Data API**
+   [https://earthquake.usgs.gov/fdsnws/event/1/](https://earthquake.usgs.gov/fdsnws/event/1/)
+
+3. **Microsoft Fabric Documentation**
+   For guidance on Lakehouse, Data Factory, and the Medallion architecture.
+
+4. **Reverse Geocoding Library (`reverse_geocoder`)**
+   Used for country code enrichment in the Gold layer.
 
 ---
 
