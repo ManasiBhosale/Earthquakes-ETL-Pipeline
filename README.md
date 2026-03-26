@@ -75,8 +75,7 @@ The Bronze notebook ingests raw earthquake events directly from the USGS API.
 ### **API Format Example**
 
 ```
-https://earthquake.usgs.gov/fdsnws/event/1/query?
-format=geojson&starttime=2014-01-01&endtime=2014-01-02
+https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2014-01-01&endtime=2014-01-02
 ```
 
 ### **Core Logic**
